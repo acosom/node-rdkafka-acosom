@@ -1,5 +1,5 @@
 {
-  "name": "node-rdkafka",
+  "name": "acosom-node-rdkafka",
   "version": "v2.14.0",
   "description": "Node.js bindings for librdkafka",
   "librdkafka": "1.8.2",
@@ -28,6 +28,10 @@
     {
       "name": "Matt Gollob",
       "email": "mattness@users.noreply.github.com"
+    },
+    {
+      "name": "Robin Fehr",
+      "email": "contact@acosom.com"
     }
   ],
   "license": "MIT",
