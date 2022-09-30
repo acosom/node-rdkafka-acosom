@@ -126,10 +126,8 @@ export const CODES: { ERRORS: {
   ERR__NOOP: number,
   /** No offset to automatically reset to (**-140**) */
   ERR__AUTO_OFFSET_RESET: number,
-
   /** End internal error codes (**-100**) */
   ERR__END: number,
-
   /* Kafka broker errors: */
   /** Unknown broker error (**-1**) */
   ERR_UNKNOWN: number,
