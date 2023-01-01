@@ -556,6 +556,8 @@ void KafkaConsumer::Init(v8::Local<v8::Object> exports) {
    */
 
   Nan::SetPrototypeMethod(tpl, "configureCallbacks", NodeConfigureCallbacks);
+  Nan::SetPrototypeMethod(tpl, "fatalError", NodeFatalError);
+  Nan::SetPrototypeMethod(tpl, "fatalErrorMessage", NodeFatalErrorMessage);
 
   /*
    * @brief Methods to do with establishing state

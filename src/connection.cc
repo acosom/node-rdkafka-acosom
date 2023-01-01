@@ -420,4 +420,26 @@ NAN_METHOD(Connection::NodeConfigureCallbacks) {
   info.GetReturnValue().Set(Nan::True());
 }
 
+NAN_METHOD(Connection::NodeFatalError) {
+  Nan::HandleScope scope;
+  std::string message;
+
+  Connection* obj = ObjectWrap::Unwrap<Connection>(info.This());
+  RdKafka::Handle* handle = obj->GetClient();
+  RdKafka::ErrorCode err = handle->fatal_error(message);
+
+  info.GetReturnValue().Set(Nan::New<v8::Number>(static_cast<int>(err)));
+}
+
+NAN_METHOD(Connection::NodeFatalErrorMessage) {
+  Nan::HandleScope scope;
+  std::string message;
+
+  Connection* obj = ObjectWrap::Unwrap<Connection>(info.This());
+  RdKafka::Handle* handle = obj->GetClient();
+  handle->fatal_error(message);
+
+  info.GetReturnValue().Set(Nan::New<v8::String>(message).ToLocalChecked());
+}
+
 }  // namespace NodeKafka

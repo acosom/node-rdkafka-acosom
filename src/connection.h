@@ -90,6 +90,8 @@ class Connection : public Nan::ObjectWrap {
   static NAN_METHOD(NodeGetMetadata);
   static NAN_METHOD(NodeQueryWatermarkOffsets);
   static NAN_METHOD(NodeOffsetsForTimes);
+  static NAN_METHOD(NodeFatalError);
+  static NAN_METHOD(NodeFatalErrorMessage);
 };
 
 }  // namespace NodeKafka
