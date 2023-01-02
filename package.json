@@ -1,6 +1,6 @@
 {
-  "name": "acosom-node-rdkafka",
-  "version": "v2.14.1",
+  "name": "node-rdkafka-acosom",
+  "version": "v2.15.0",
   "description": "Node.js bindings for librdkafka",
   "librdkafka": "1.9.2",
   "main": "lib/index.js",
@@ -10,7 +10,7 @@
     "test": "make test",
     "test:e2e": "make e2e",
     "install": "node-gyp rebuild",
-    "prepack": "node ./ci/prepublish.js"
+    "version": "node ./ci/prepublish.js"
   },
   "keywords": [
     "kafka",
@@ -22,15 +22,11 @@
   },
   "contributors": [
     {
-      "name": "Stephen Parente",
-      "email": "webmakersteve@gmail.com"
-    },
-    {
-      "name": "Matt Gollob",
-      "email": "mattness@users.noreply.github.com"
-    },
-    {
       "name": "Robin Fehr",
+      "email": "contact@acosom.com"
+    },
+    {
+      "name": "Leonard Ikle",
       "email": "contact@acosom.com"
     }
   ],
