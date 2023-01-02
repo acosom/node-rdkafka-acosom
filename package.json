@@ -10,7 +10,7 @@
     "test": "make test",
     "test:e2e": "make e2e",
     "install": "node-gyp rebuild",
-    "version": "node ./ci/prepublish.js"
+    "prepack": "node ./ci/prepublish.js"
   },
   "keywords": [
     "kafka",
