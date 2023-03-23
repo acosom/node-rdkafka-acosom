@@ -85,9 +85,11 @@ void AdminClient::Init(v8::Local<v8::Object> exports) {
   Nan::SetPrototypeMethod(tpl, "createTopic", NodeCreateTopic);
   Nan::SetPrototypeMethod(tpl, "deleteTopic", NodeDeleteTopic);
   Nan::SetPrototypeMethod(tpl, "createPartitions", NodeCreatePartitions);
+  Nan::SetPrototypeMethod(tpl, "deleteRecords", NodeDeleteRecords);
 
   Nan::SetPrototypeMethod(tpl, "connect", NodeConnect);
   Nan::SetPrototypeMethod(tpl, "disconnect", NodeDisconnect);
+  Nan::SetPrototypeMethod(tpl, "getMetadata", NodeGetMetadata);
 
   constructor.Reset(
     (tpl->GetFunction(Nan::GetCurrentContext())).ToLocalChecked());
@@ -337,6 +339,79 @@ Baton AdminClient::DeleteTopic(rd_kafka_DeleteTopic_t* topic, int timeout_ms) {
   }
 }
 
+Baton AdminClient::DeleteRecords(const char *topic, int partition, size_t del_record_cnt, rd_kafka_topic_partition_list_t **offsets_deleted, int timeout_request_ms, int timeout_poll_ms) {
+  if (!IsConnected()) {
+    return Baton(RdKafka::ERR__STATE);
+  }
+
+  {
+    scoped_shared_write_lock lock(m_connection_lock);
+    if (!IsConnected()) {
+      return Baton(RdKafka::ERR__STATE);
+    }
+
+    // Create queue just for this operation.
+
+    // Prepare the options for the delete records request to the leader
+    char errstr[512];
+    rd_kafka_AdminOptions_t *options_del_records_request = rd_kafka_AdminOptions_new(
+      m_client->c_ptr(), RD_KAFKA_ADMIN_OP_DELETERECORDS);
+
+
+    if (rd_kafka_AdminOptions_set_request_timeout(
+      options_del_records_request, timeout_request_ms, errstr, sizeof(errstr))) {
+      rd_kafka_AdminOptions_destroy(options_del_records_request);
+      return Baton(RdKafka::ERR__TIMED_OUT);
+    }
+
+    // Prepare the offsets to be deleted
+    rd_kafka_topic_partition_list_t *offsets;
+    offsets = rd_kafka_topic_partition_list_new(del_record_cnt);
+    rd_kafka_topic_partition_list_add(offsets, topic, partition)->offset = del_record_cnt;
+    rd_kafka_DeleteRecords_t *del_records;
+    del_records = rd_kafka_DeleteRecords_new(offsets);
+    rd_kafka_topic_partition_list_destroy(offsets);
+
+    // Execute the delete request to the leader
+    rd_kafka_queue_t * topic_rkqu = rd_kafka_queue_new(m_client->c_ptr());
+    rd_kafka_DeleteRecords(m_client->c_ptr(), &del_records, 1, options_del_records_request, topic_rkqu);
+    rd_kafka_DeleteRecords_destroy(del_records);
+    rd_kafka_AdminOptions_destroy(options_del_records_request);
+
+    // Poll for an event by type in that queue
+    rd_kafka_event_t * event_response = PollForEvent(
+      topic_rkqu,
+      RD_KAFKA_EVENT_DELETERECORDS_RESULT,
+      timeout_poll_ms);
+    rd_kafka_queue_destroy(topic_rkqu);
+    // rd_kafka_AdminOptions_destroy(options_del_records_request);
+
+    // If we got no response from that operation, this is a failure
+    // likely due to time out
+    if (event_response == NULL) {
+      return Baton(RdKafka::ERR__TIMED_OUT);
+    }
+
+    if (rd_kafka_event_error(event_response)) {
+      // If we had a special error code, get out of here with it
+      const rd_kafka_resp_err_t errcode = rd_kafka_event_error(event_response);
+      rd_kafka_event_destroy(event_response);
+      return Baton(static_cast<RdKafka::ErrorCode>(errcode));
+    }
+
+    // Set the deleted records to the ref passed arg 
+    const rd_kafka_DeleteRecords_result_t* delete_records_results =
+      rd_kafka_event_DeleteRecords_result(event_response);
+    const rd_kafka_topic_partition_list_t *result_offsets = rd_kafka_DeleteRecords_result_offsets(delete_records_results);
+    rd_kafka_topic_partition_list_t *offsets_res = rd_kafka_topic_partition_list_copy(result_offsets);
+    *offsets_deleted = offsets_res;
+
+    rd_kafka_event_destroy(event_response);
+
+    return Baton(RdKafka::ERR_NO_ERROR);
+  }
+}
+
 Baton AdminClient::CreatePartitions(
   rd_kafka_NewPartitions_t* partitions,
   int timeout_ms) {
@@ -543,7 +618,39 @@ NAN_METHOD(AdminClient::NodeDeleteTopic) {
 }
 
 /**
- * Delete topic
+ * Delete Records
+ */
+
+NAN_METHOD(AdminClient::NodeDeleteRecords) {
+  Nan::HandleScope scope;
+
+  if (info.Length() < 6 || !info[5]->IsFunction()) {
+    return Nan::ThrowError("Need to specify a callback");
+  }
+  if (!info[2]->IsNumber() || !info[1]->IsNumber() || !info[0]->IsString()) {
+    return Nan::ThrowError("Must provide 'topic', 'partition' and 'amount'");
+  }
+
+  std::string topic_name = Util::FromV8String(
+    Nan::To<v8::String>(info[0]).ToLocalChecked());
+  int partition = Nan::To<int32_t>(info[1]).FromJust();
+  int amount = Nan::To<int32_t>(info[2]).FromJust();
+  int timeout_leader_request = Nan::To<int32_t>(info[3]).FromJust();
+  int timeout_event_polling = Nan::To<int32_t>(info[4]).FromJust();
+  v8::Local<v8::Function> cb = info[5].As<v8::Function>();
+  Nan::Callback *callback = new Nan::Callback(cb);
+
+  AdminClient* client = ObjectWrap::Unwrap<AdminClient>(info.This());
+
+  // Queue up dat work
+  Nan::AsyncQueueWorker(
+    new Workers::AdminClientDeleteRecords(callback, client, topic_name, partition, amount, timeout_leader_request, timeout_event_polling));
+
+  return info.GetReturnValue().Set(Nan::Null());
+}
+
+/**
+ * Create Partitions
  */
 NAN_METHOD(AdminClient::NodeCreatePartitions) {
   Nan::HandleScope scope;

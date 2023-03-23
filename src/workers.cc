@@ -1234,5 +1234,70 @@ void AdminClientCreatePartitions::HandleErrorCallback() {
   callback->Call(argc, argv);
 }
 
+/**
+ * @brief Delete records in an asynchronous worker.
+ * It will delete "the del_record_cnt " offsets from the "earliest" offset.
+ *
+ * This callback will delete records of a topic 
+ *
+ */
+AdminClientDeleteRecords::AdminClientDeleteRecords(
+                                         Nan::Callback *callback,
+                                         AdminClient* client,
+                                         std::string topic,
+                                         int32_t partition,
+                                         int64_t del_record_cnt,
+                                         const int & timeout_request_ms,
+                                         const int & timeout_poll_ms) :
+  ErrorAwareWorker(callback),
+  m_client(client),
+  m_topic(topic),
+  m_partition(partition),
+  m_del_record_cnt(del_record_cnt),
+  m_timeout_poll_ms(timeout_poll_ms),
+  m_timeout_request_ms(timeout_request_ms) {}
+
+AdminClientDeleteRecords::~AdminClientDeleteRecords() {
+  // Destroy the deleted offsets response when we are done
+  rd_kafka_topic_partition_list_destroy(m_offsets_deleted);
+}
+
+void AdminClientDeleteRecords::Execute() {
+  std::size_t del_record_cnt = static_cast<std::size_t>(m_del_record_cnt);
+  Baton b = m_client->DeleteRecords(m_topic.c_str(), m_partition, del_record_cnt, &m_offsets_deleted, m_timeout_request_ms, m_timeout_poll_ms);
+
+  if (b.err() != RdKafka::ERR_NO_ERROR) {
+    SetErrorBaton(b);
+  }
+}
+
+void AdminClientDeleteRecords::HandleOKCallback() {
+  Nan::HandleScope scope;
+  const unsigned int argc = 2;
+  v8::Local<v8::Value> argv[argc];
+  argv[0] = Nan::Null();
+  v8::Local<v8::Array> returnArray = Nan::New<v8::Array>();
+  std::vector<RdKafka::TopicPartition*> offsets_deleted;
+
+  for (int i = 0; i < m_offsets_deleted->cnt; i++) {
+      rd_kafka_topic_partition_t *p = &m_offsets_deleted->elems[i];
+      RdKafka::TopicPartition *pp = RdKafka::TopicPartition::create(p->topic, p->partition, p->offset);
+      offsets_deleted.push_back(pp);
+  }
+
+  argv[1] = Conversion::TopicPartition::ToV8Array(offsets_deleted);
+  RdKafka::TopicPartition::destroy(offsets_deleted);
+  callback->Call(argc, argv);
+}
+
+void AdminClientDeleteRecords::HandleErrorCallback() {
+  Nan::HandleScope scope;
+
+  const unsigned int argc = 1;
+  v8::Local<v8::Value> argv[argc] = { GetErrorObject() };
+
+  callback->Call(argc, argv);
+}
+
 }  // namespace Workers
 }  // namespace NodeKafka
