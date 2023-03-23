@@ -7,8 +7,11 @@
   "scripts": {
     "configure": "node-gyp configure",
     "build": "node-gyp build",
+    "build:dev": "node-gyp build -j 8 --debug",
     "test": "make test",
-    "test:e2e": "make e2e",
+    "test:e2e": "npm run test:e2eOld && npm run test:e2eNew",
+    "test:e2eOld": "make e2e",
+    "test:e2eNew": "tap testsNew/e2e",
     "install": "node-gyp rebuild",
     "prepack": "node ./ci/prepublish.js"
   },
@@ -30,6 +33,9 @@
       "email": "contact@acosom.com"
     }
   ],
+  "tap": {
+    "coverage-map": "map.js"
+  },
   "license": "MIT",
   "devDependencies": {
     "bluebird": "^3.5.3",
@@ -41,7 +47,8 @@
   },
   "dependencies": {
     "bindings": "^1.3.1",
-    "nan": "^2.14.0"
+    "nan": "^2.14.0",
+    "tap": "^16.3.4"
   },
   "engines": {
     "node": ">=6.0.0"

@@ -48,6 +48,7 @@ class AdminClient : public Connection {
 
   Baton CreateTopic(rd_kafka_NewTopic_t* topic, int timeout_ms);
   Baton DeleteTopic(rd_kafka_DeleteTopic_t* topic, int timeout_ms);
+  Baton DeleteRecords(const char *topic, int partition, size_t del_record_cnt, rd_kafka_topic_partition_list_t **offsets_deleted, int timeout_request_ms, int timeout_poll_ms);
   Baton CreatePartitions(rd_kafka_NewPartitions_t* topic, int timeout_ms);
   // Baton AlterConfig(rd_kafka_NewTopic_t* topic, int timeout_ms);
   // Baton DescribeConfig(rd_kafka_NewTopic_t* topic, int timeout_ms);
@@ -66,6 +67,7 @@ class AdminClient : public Connection {
   // static NAN_METHOD(NodeValidateTopic);
   static NAN_METHOD(NodeCreateTopic);
   static NAN_METHOD(NodeDeleteTopic);
+  static NAN_METHOD(NodeDeleteRecords);
   static NAN_METHOD(NodeCreatePartitions);
 
   static NAN_METHOD(NodeConnect);

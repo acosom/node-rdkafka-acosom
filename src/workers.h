@@ -498,6 +498,27 @@ class AdminClientCreatePartitions : public ErrorAwareWorker {
   const int m_timeout_ms;
 };
 
+class AdminClientDeleteRecords : public ErrorAwareWorker {
+ public:
+  AdminClientDeleteRecords(Nan::Callback*, NodeKafka::AdminClient*,
+    std::string, int32_t, int64_t, const int &, const int &);
+  ~AdminClientDeleteRecords();
+
+  void Execute();
+  void HandleOKCallback();
+  void HandleErrorCallback();
+
+ private:
+  NodeKafka::AdminClient * m_client;
+  std::string m_topic;
+  int32_t m_partition;
+  int64_t m_del_record_cnt;
+  int m_timeout_request_ms;
+  int m_timeout_poll_ms;
+
+  rd_kafka_topic_partition_list_t* m_offsets_deleted;
+};
+
 }  // namespace Workers
 
 }  // namespace NodeKafka
