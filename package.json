@@ -1,6 +1,6 @@
 {
   "name": "node-rdkafka-acosom",
-  "version": "v2.15.1",
+  "version": "v2.16.0",
   "description": "Node.js bindings for librdkafka",
   "librdkafka": "1.9.2",
   "main": "lib/index.js",
