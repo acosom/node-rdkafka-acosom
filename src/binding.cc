@@ -91,8 +91,4 @@ void Init(v8::Local<v8::Object> exports) {
       Nan::New(RdKafka::version_str().c_str()).ToLocalChecked());
 }
 
-#if NODE_MAJOR_VERSION >= 10
 NAN_MODULE_WORKER_ENABLED(kafka, Init)
-#else
-NODE_MODULE(kafka, Init)
-#endif
